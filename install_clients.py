@@ -69,14 +69,7 @@ def ssh_and_get_output(host, extra_commands):
     return call(command + [extra_commands])
 
 def call(command):
-    # pdb.set_trace()
-    process = subprocess.Popen(command, stdout=subprocess.PIPE)
-    lines = ""
-    for line in iter(lambda: process.stdout.readline(), b''):
-        lines += line.decode('utf-8')
-
-    # return subprocess.check_output(command)
-    return lines
+    return subprocess.check_output(command).decode('utf-8')
 
 def check_landscape_client(nodes):
     node_status = {}
