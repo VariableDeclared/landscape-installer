@@ -5,6 +5,8 @@ import logging
 import pdb
 import subprocess
 import sys
+import re 
+
 
 LOGGING_FILE = "landscape-installer.log"
 logging.basicConfig(filename=LOGGING_FILE, level=logging.DEBUG)
@@ -55,9 +57,6 @@ def install_landscape_client(nodes):
 
 def register_landscape_client(nodes, config):
     for node in nodes:
-        # print(f" running sudo landscape-config --account-name {config.account_name} \
-                # --url https://{config.landscape_server}/message-system \
-                # --ping-url http://{config.landscape_server}/ping")
         ssh(node, f"sudo landscape-config --silent --account-name {config.account_name} \
                 --url https://{config.landscape_server}/message-system \
                 --ping-url http://{config.landscape_server}/ping \
@@ -65,8 +64,33 @@ def register_landscape_client(nodes, config):
                 + " -t $(hostnamectl | grep 'Static hostname:' | awk '{print $3}')")
 
 
-# def check_landscape_client(nodes):
-    # for node in nodes:
+def ssh_and_get_output(host, extra_commands):
+    command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
+    return call(command + [extra_commands])
+
+def call(command):
+    # pdb.set_trace()
+    process = subprocess.Popen(command, stdout=subprocess.PIPE)
+    lines = ""
+    for line in iter(lambda: process.stdout.readline(), b''):
+        lines += line.decode('utf-8')
+
+    # return subprocess.check_output(command)
+    return lines
+
+def check_landscape_client(nodes):
+    node_status = {}
+    expression = re.compile(r'Active: {1}(?P<status>[a-zA-Z \(\)]*) since', re.MULTILINE)
+    for node in nodes:
+        # pdb.set_trace()
+        ssh_output = ssh_and_get_output(node, f"systemctl status landscape-client | grep Active 2>&1")
+        status = expression.search(ssh_output).group("status")
+        node_status.update({
+            node: status
+        })
+    
+    for node,status in node_status.items():
+        print(f"Node {node} landscape-client is: {status}")
         
 
 
@@ -74,7 +98,7 @@ def register_landscape_client(nodes, config):
 ACTIONS = {
     'action_install_landscape_client': install_landscape_client,
     'action_register_landscape_client': register_landscape_client,
-    # 'action_check_landscape_client': check_landscape_client
+    'action_check_landscape_client': check_landscape_client
 }
 
 
