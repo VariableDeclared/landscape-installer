@@ -55,14 +55,14 @@ def install_landscape_client(nodes):
 
 def register_landscape_client(nodes, config):
     for node in nodes:
-        print(f" running sudo landscape-config --account-name {config.account_name} \
-                --url https://{config.landscape_server}/message-system \
-                --ping-url http://{config.landscape_server}/ping")
+        # print(f" running sudo landscape-config --account-name {config.account_name} \
+                # --url https://{config.landscape_server}/message-system \
+                # --ping-url http://{config.landscape_server}/ping")
         ssh(node, f"sudo landscape-config --silent --account-name {config.account_name} \
                 --url https://{config.landscape_server}/message-system \
                 --ping-url http://{config.landscape_server}/ping \
-                -t $(hostnamectl  | grep 'Static hostname:' | awk '{print $3}')\
-                -p {config.registration_key")
+                -p {config.registration_key}"\
+                + " -t $(hostnamectl | grep 'Static hostname:' | awk '{print $3}')")
 
 
 # def check_landscape_client(nodes):
