@@ -96,9 +96,9 @@ ACTIONS = {
 
 
 STEPS = [action[action.find("_")+1:] for action in ACTIONS.keys()] 
-parser = argparse.ArgumentParser(description="Deploy Lanscape to clients.")
+parser = argparse.ArgumentParser(description="Deploy Lanscape client to clients.")
 parser.add_argument('--steps', default=",".join(STEPS), type=str, nargs="?", help=f"""
-Specify steps to run. Default runs all. 
+Specify steps to run, comma separated. Default runs all. 
 Choose from:
 {",".join(STEPS)}
 """

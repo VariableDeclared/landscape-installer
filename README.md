@@ -3,6 +3,16 @@ A script to handle all your landscape needs
 
 ## How to use
 
+Firstly you will need to configure the landscape server config. By default the script will look for this config file in the working directory (.) under the name landscape-config.json.
+
+The format of the json file is as follows:
+```
+{
+    "account-name": "pjds",
+    "landscape-server": "172.27.60.189",
+    "registration-key": "test" 
+}
+```
 Start with
 
 ```
