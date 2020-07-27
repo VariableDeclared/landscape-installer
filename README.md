@@ -30,6 +30,6 @@ To run install the clients do on a set of nodes, run the following:
 Or to install on the machine that the script is running on use the `--localhost` argument.
 
 ```
-./install_clients.py
+./install_clients.py --localhost
 ```
 
