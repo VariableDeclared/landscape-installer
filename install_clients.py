@@ -9,9 +9,13 @@ import re
 import ipaddress
 import socket
 
-#TODO:
-# Localhost install
+# TODO:
 # HANDLE ALL ERRORS
+# Cleanup function 
+# Validate configuration - TEST
+# Validate steps arg - TEST
+# Tags are getting split into commas
+# Registration key is wrong
 
 LOGGING_FILE = "landscape-installer.log"
 logging.basicConfig(filename=LOGGING_FILE, level=logging.DEBUG)
@@ -27,21 +31,45 @@ class LandscapeConfigEncoder(json.JSONEncoder):
         if isinstance(o, LandscapeConfig):
             return { 'account-name': o.account_name, 'landscape-server': o.landscape_server, 'registration-key': o.registration_key, 'tags': o.tags }
 
+class LandscapeConfigDecoder(json.JSONDecoder):
+    def decode(self, string):
+        config_dict = json.loads(string)
+        # pdb.set_trace()
+        try:
+            return LandscapeConfig(config_dict['account-name'], config_dict['landscape-server'], config_dict['registration-key'], config_dict['tags'])
+        except ValueError as ex:
+            print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
+            exit(1)
+
+
 class ToggleAction(argparse.Action):
     def __call__(self, parser, ns, values, option):
         setattr(ns, self.dest, 'no' not in option)
 
 class LandscapeConfig(object):
+    def validate_str_args(self, arg):
+        if type(arg) is not str:
+            raise ValueError(f"Keys should be of value string. Check the landscape config file")
     def __init__(self, *args):
-        self.account_name = args[0]
-        self.landscape_server = args[1]
-        self.registration_key = args[2]
+        self.account_name = self.validate_str_args(args[0])
+        self.landscape_server = self.validate_str_args(args[1])
+        self.registration_key = self.validate_str_args(args[2])
+        if type(args[3]) is not list:
+            raise ValueError(""" Tags is a list. 
+Ensure tags element has the form:
+"tags": ["tag1", "tag2"]
+""")
+        if(type(args[3][0]) is not str):
+            raise ValueError("""Tags should take string form
+Elements take the form:
+"tags": ["str1", "str2"]
+""")
         self.tags = args[3]
 
-    def decode_config(config_line):
-        config = json.loads(config_line)
-        return LandscapeConfig(config['account-name'], config['landscape-server'], config['registration-key'], config['tags'])
 
+
+def cleanup(nodes):
+    raise NotImplementedError("IMPLEMENT ME")
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
@@ -66,13 +94,15 @@ def install_landscape_client(nodes, localhost):
 
 
 def register_landscape_client(nodes, config, localhost):
+    expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
     for node in nodes:
+        hostname = expression.search(ssh_and_get_output(node, "hostnamectl", not localhost)).group("hostname")
         ssh(node, f"sudo landscape-config --silent --account-name {config.account_name} \
                 --url https://{config.landscape_server}/message-system \
                 --ping-url http://{config.landscape_server}/ping \
                 -p {config.registration_key} \
-                --tags {','.join(config.tags)}" \
-                " -t $(hostnamectl | grep 'Static hostname:' | awk '{print $3}')", not localhost)
+                --tags {','.join(config.tags)} \
+                -t {hostname}", not localhost)
 
 
 def ssh_and_get_output(host, extra_commands, ssh=True):
@@ -100,18 +130,22 @@ def check_landscape_client(nodes, localhost):
     
     for node,status in node_status.items():
         print(f"Node {node} landscape-client is: {status}")
-        
-
-
 
 ACTIONS = {
     'action_install_landscape_client': install_landscape_client,
     'action_register_landscape_client': register_landscape_client,
     'action_check_landscape_client': check_landscape_client
 }
+NON_DEFAULT_ACTIONS = {
+    'action_cleanup': cleanup 
+}
 
+def actions_to_human_form(actions):
+    return [action[action.find("_")+1:] for action in actions.keys()] 
 
-STEPS = [action[action.find("_")+1:] for action in ACTIONS.keys()] 
+STEPS = actions_to_human_form(ACTIONS) 
+NON_DEFAULT_STEPS = actions_to_human_form(NON_DEFAULT_ACTIONS)
+
 parser = argparse.ArgumentParser(description="Deploy Lanscape client to clients.")
 parser.add_argument('--steps', default=",".join(STEPS), type=str, nargs="?", help=f"""
 Specify steps to run, comma separated. Default runs all. 
@@ -133,7 +167,7 @@ if args.localhost:
 landscape_config = {}
 try:
     with open(CONFIG_DIRECTORY, 'r') as config_file:
-        landscape_config = LandscapeConfig.decode_config(config_file.read())
+        landscape_config = json.loads(config_file.read(), cls=LandscapeConfigDecoder)
 except FileNotFoundError:
     print(f"Expected to find landscape configuration {CONFIG_DIRECTORY}. But did not. Does it exist? Exiting.")
     exit(1)
@@ -159,15 +193,26 @@ def validate_client_args(client_args):
 ACTIONS_TO_ARGS_MAP = {
     'action_install_landscape_client': [validate_client_args(args.clients), args.localhost],
     'action_register_landscape_client': [validate_client_args(args.clients), landscape_config, args.localhost],
-    'action_check_landscape_client': [validate_client_args(args.clients), args.localhost]
+    'action_check_landscape_client': [validate_client_args(args.clients), args.localhost],
+    'action_cleanup': [validate_client_args(args.clients)]
 }
 
 
 def main():
+    if args.steps is None:
+        print(f"""No steps specified.
+Valid steps are:
+{",".join(STEPS)}
+There are also some non-default steps:
+{",".join(NON_DEFAULT_STEPS)}""")
+        exit(1)
+
     for step in args.steps.split(','):
         action_name = f'action_{step}'
+        if action_name not in ACTIONS:
+            print(f"Invalid step specified, {action_name}. Run {__file__} --help for a list of valid steps.")
+            exit(1)
         logger.debug(f"Running action {action_name}")
-        # pdb.set_trace()
         ACTIONS[action_name](*ACTIONS_TO_ARGS_MAP.get(action_name,()))
 
 if __name__ == '__main__':
