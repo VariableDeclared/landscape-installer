@@ -26,15 +26,15 @@ SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account-name': o.account_name, 'landscape-server': o.landscape_server, 'registration-key': o.registration_key, 'tags': o.tags }
+            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags }
 
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         # pdb.set_trace()
         try:
-            return LandscapeConfig(config_dict['account-name'], config_dict['landscape-server'], config_dict['registration-key'], config_dict['tags'])
-        except ValueError as ex:
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'])
+        except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
 

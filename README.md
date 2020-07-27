@@ -8,9 +8,9 @@ Firstly you will need to configure the landscape server config. By default the s
 The format of the json file is as follows:
 ```
 {
-    "account-name": "pjds",
-    "landscape-server": "172.27.60.189",
-    "registration-key": "test",
+    "account_name": "pjds",
+    "landscape_server": "172.27.60.189",
+    "registration_key": "test",
     "tags": ["dev", "20.04"]
 }
 ```
