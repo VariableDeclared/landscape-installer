@@ -120,7 +120,7 @@ def check_landscape_client(nodes, localhost):
     node_status = {}
     expression = re.compile(r'Active: {1}(?P<status>[a-zA-Z \(\)]*) since', re.MULTILINE)
     for node in nodes:
-        # pdb.set_trace()
+        
         ssh_output = ssh_and_get_output(node, f"systemctl status landscape-client", not localhost)
         status = expression.search(ssh_output).group("status")
         node_status.update({
@@ -167,7 +167,7 @@ landscape_config = {}
 try:
     with open(CONFIG_DIRECTORY, 'r') as config_file:
         landscape_config = json.loads(config_file.read(), cls=LandscapeConfigDecoder)
-        # pdb.set_trace()
+        
 except FileNotFoundError:
     print(f"Expected to find landscape configuration {CONFIG_DIRECTORY}. But did not. Does it exist? Exiting.")
     exit(1)
