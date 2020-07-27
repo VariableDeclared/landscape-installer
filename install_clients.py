@@ -31,7 +31,6 @@ class LandscapeConfigEncoder(json.JSONEncoder):
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
-        # pdb.set_trace()
         try:
             return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'])
         except Exception as ex:
@@ -47,6 +46,7 @@ class LandscapeConfig(object):
     def validate_str_args(self, arg):
         if type(arg) is not str:
             raise ValueError(f"Keys should be of value string. Check the landscape config file")
+        return arg
     def __init__(self, *args):
         self.account_name = self.validate_str_args(args[0])
         self.landscape_server = self.validate_str_args(args[1])
@@ -67,8 +67,8 @@ Elements take the form:
 
 def cleanup(nodes, localhost):
     for node in nodes:
-        ssh_and_get_output(node, "sudo apt remove landscape-client -y", not localhost)
-        ssh_and_get_output(node, "sudo rm /etc/landscape/client.conf", not localhost)
+        ssh(node, "sudo apt-get remove landscape-client -y", not localhost)
+        ssh(node, "sudo rm /etc/landscape/client.conf", not localhost)
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
@@ -89,6 +89,7 @@ def ssh(host, extra_commands, ssh=True):
 def install_landscape_client(nodes, localhost):
     for node in nodes:
         print(f"Installing landscape client to: {node}")
+        ssh(node, "sudo mkdir /etc/landscape", not localhost)
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
 
 
@@ -108,7 +109,6 @@ def ssh_and_get_output(host, extra_commands, ssh=True):
     command = []
     if ssh:
         command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
-
         return call(command + [extra_commands])
     else:
         return call(extra_commands.split(" "))
@@ -167,6 +167,7 @@ landscape_config = {}
 try:
     with open(CONFIG_DIRECTORY, 'r') as config_file:
         landscape_config = json.loads(config_file.read(), cls=LandscapeConfigDecoder)
+        # pdb.set_trace()
 except FileNotFoundError:
     print(f"Expected to find landscape configuration {CONFIG_DIRECTORY}. But did not. Does it exist? Exiting.")
     exit(1)
