@@ -11,11 +11,8 @@ import socket
 
 # TODO:
 # HANDLE ALL ERRORS
-# Cleanup function 
-# Validate configuration - TEST
-# Validate steps arg - TEST
-# Tags are getting split into commas
-# Registration key is wrong
+# Cleanup function - TEST
+# 
 
 LOGGING_FILE = "landscape-installer.log"
 logging.basicConfig(filename=LOGGING_FILE, level=logging.DEBUG)
@@ -68,8 +65,10 @@ Elements take the form:
 
 
 
-def cleanup(nodes):
-    raise NotImplementedError("IMPLEMENT ME")
+def cleanup(nodes, localhost):
+    for node in nodes:
+        ssh_and_get_output(node, "sudo apt remove landscape-client -y", not localhost)
+        ssh_and_get_output(node, "sudo rm /etc/landscape/client.conf", not localhost)
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
@@ -194,7 +193,7 @@ ACTIONS_TO_ARGS_MAP = {
     'action_install_landscape_client': [validate_client_args(args.clients), args.localhost],
     'action_register_landscape_client': [validate_client_args(args.clients), landscape_config, args.localhost],
     'action_check_landscape_client': [validate_client_args(args.clients), args.localhost],
-    'action_cleanup': [validate_client_args(args.clients)]
+    'action_cleanup': [validate_client_args(args.clients), args.localhost]
 }
 
 
@@ -209,11 +208,15 @@ There are also some non-default steps:
 
     for step in args.steps.split(','):
         action_name = f'action_{step}'
-        if action_name not in ACTIONS:
+        if action_name not in ACTIONS and \
+                action_name not in NON_DEFAULT_ACTIONS:
             print(f"Invalid step specified, {action_name}. Run {__file__} --help for a list of valid steps.")
             exit(1)
         logger.debug(f"Running action {action_name}")
-        ACTIONS[action_name](*ACTIONS_TO_ARGS_MAP.get(action_name,()))
+        try:
+            ACTIONS[action_name](*ACTIONS_TO_ARGS_MAP.get(action_name,()))
+        except KeyError:
+            NON_DEFAULT_ACTIONS[action_name](*ACTIONS_TO_ARGS_MAP.get(action_name,()))
 
 if __name__ == '__main__':
     main()
