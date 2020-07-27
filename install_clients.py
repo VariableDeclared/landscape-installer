@@ -6,7 +6,12 @@ import pdb
 import subprocess
 import sys
 import re 
+import ipaddress
+import socket
 
+#TODO:
+# Localhost install
+# HANDLE ALL ERRORS
 
 LOGGING_FILE = "landscape-installer.log"
 logging.basicConfig(filename=LOGGING_FILE, level=logging.DEBUG)
@@ -20,17 +25,22 @@ SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account-name': o.account_name, 'landscape-server': o.landscape_server, 'registration-key': o.registration_key }
+            return { 'account-name': o.account_name, 'landscape-server': o.landscape_server, 'registration-key': o.registration_key, 'tags': o.tags }
+
+class ToggleAction(argparse.Action):
+    def __call__(self, parser, ns, values, option):
+        setattr(ns, self.dest, 'no' not in option)
 
 class LandscapeConfig(object):
-    def __init__(self, account_name, landscape_server, registration_key):
-        self.account_name = account_name
-        self.landscape_server = landscape_server
-        self.registration_key = registration_key
+    def __init__(self, *args):
+        self.account_name = args[0]
+        self.landscape_server = args[1]
+        self.registration_key = args[2]
+        self.tags = args[3]
 
     def decode_config(config_line):
         config = json.loads(config_line)
-        return LandscapeConfig(config['account-name'], config['landscape-server'], config['registration-key'])
+        return LandscapeConfig(config['account-name'], config['landscape-server'], config['registration-key'], config['tags'])
 
 
 def call_logging_output(command_pieces):
@@ -40,43 +50,49 @@ def call_logging_output(command_pieces):
         logger.debug(line)
 
 
-def ssh(host, extra_commands):
-    command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
-    call_logging_output(command + [extra_commands])
+def ssh(host, extra_commands, ssh=True):
+    if ssh:
+        command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
+        call_logging_output(command + [extra_commands])
+    else:
+        call_logging_output(extra_commands.split(" "))
 
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
-def install_landscape_client(nodes):
+def install_landscape_client(nodes, localhost):
     for node in nodes:
-        # ssh(node, "sudo add-apt-repository ppa:landscape/19.10 && \
-                # sudo apt-get install landscape-server-quickstart")
-
-        ssh(node,"sudo apt-get install -y landscape-client")
+        print(f"Installing landscape client to: {node}")
+        ssh(node,"sudo apt-get install -y landscape-client", not localhost)
 
 
-
-def register_landscape_client(nodes, config):
+def register_landscape_client(nodes, config, localhost):
     for node in nodes:
         ssh(node, f"sudo landscape-config --silent --account-name {config.account_name} \
                 --url https://{config.landscape_server}/message-system \
                 --ping-url http://{config.landscape_server}/ping \
-                -p {config.registration_key}"\
-                + " -t $(hostnamectl | grep 'Static hostname:' | awk '{print $3}')")
+                -p {config.registration_key} \
+                --tags {','.join(config.tags)}" \
+                " -t $(hostnamectl | grep 'Static hostname:' | awk '{print $3}')", not localhost)
 
 
-def ssh_and_get_output(host, extra_commands):
-    command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
-    return call(command + [extra_commands])
+def ssh_and_get_output(host, extra_commands, ssh=True):
+    command = []
+    if ssh:
+        command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
+
+        return call(command + [extra_commands])
+    else:
+        return call(extra_commands.split(" "))
 
 def call(command):
     return subprocess.check_output(command).decode('utf-8')
 
-def check_landscape_client(nodes):
+def check_landscape_client(nodes, localhost):
     node_status = {}
     expression = re.compile(r'Active: {1}(?P<status>[a-zA-Z \(\)]*) since', re.MULTILINE)
     for node in nodes:
         # pdb.set_trace()
-        ssh_output = ssh_and_get_output(node, f"systemctl status landscape-client | grep Active 2>&1")
+        ssh_output = ssh_and_get_output(node, f"systemctl status landscape-client", not localhost)
         status = expression.search(ssh_output).group("status")
         node_status.update({
             node: status
@@ -104,19 +120,46 @@ Choose from:
 """
 )
 parser.add_argument('clients', default="", nargs="?", type=str, help="Comma separated clients to install the landscape client to. FQDN or IP accepted.")
+parser.add_argument('--localhost', default=False, action=ToggleAction, nargs=0, type=bool, help="Dont accept client arguements, just install to localhost.")
 
 args = parser.parse_args()
+
+if not args.localhost and args.clients == "":
+    parser.error("Clients arguement is required. Either specify --localhost or provide clients to install to.")
+
+if args.localhost:
+    args.clients = socket.gethostbyname('localhost')
+
 landscape_config = {}
 try:
     with open(CONFIG_DIRECTORY, 'r') as config_file:
         landscape_config = LandscapeConfig.decode_config(config_file.read())
 except FileNotFoundError:
-    print(f"Expected to find landscape configuration {CONFIG_DIRECTORY}. But did not. Does it exist?")
+    print(f"Expected to find landscape configuration {CONFIG_DIRECTORY}. But did not. Does it exist? Exiting.")
+    exit(1)
+
+### VALIDATORS:
+def validate_client_args(client_args):
+    try:
+        if client_args is None:
+            raise TypeError("Clients cannot be none.")
+        clients = []
+        for client in client_args.split(","):
+            # Host -> IP, IP->IP.
+            # Raises socket.gaierror if host is not valid.
+            clients.append(socket.gethostbyname(client))
+    except Exception as ex:
+        print(f"There's a problem with the client arguements. {ex}")
+        exit(1)
+
+    return clients
+
+
 
 ACTIONS_TO_ARGS_MAP = {
-    'action_install_landscape_client': [args.clients.split(",")],
-    'action_register_landscape_client': [args.clients.split(","), landscape_config],
-    'action_check_landscape_client': [args.clients.split(",")]
+    'action_install_landscape_client': [validate_client_args(args.clients), args.localhost],
+    'action_register_landscape_client': [validate_client_args(args.clients), landscape_config, args.localhost],
+    'action_check_landscape_client': [validate_client_args(args.clients), args.localhost]
 }
 
 

@@ -10,7 +10,8 @@ The format of the json file is as follows:
 {
     "account-name": "pjds",
     "landscape-server": "172.27.60.189",
-    "registration-key": "test" 
+    "registration-key": "test",
+    "tags": ["dev", "20.04"]
 }
 ```
 Start with
@@ -26,4 +27,9 @@ To run install the clients do on a set of nodes, run the following:
 
 ```
 
+Or to install on the machine that the script is running on use the `--localhost` argument.
+
+```
+./install_clients.py
+```
 
