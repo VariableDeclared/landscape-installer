@@ -96,11 +96,8 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
-<<<<<<< HEAD
-=======
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
         ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
->>>>>>> 7d5b645347f1acc2a856b5ebfb37c3c5c07d80ca
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
