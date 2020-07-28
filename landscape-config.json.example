@@ -1,1 +1,1 @@
-{"account_name": "pjds", "landscape_server": "172.27.60.189", "registration_key": "test", "tags": ["dev", "20.04"] }
+{"account_name": "accountname", "landscape_server": "landscape.canonical.com", "registration_key": "key", "tags": ["prod","desktop"] }

@@ -96,7 +96,6 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
-        ssh(node, "sudo mkdir /etc/landscape", not localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -105,25 +104,27 @@ log_level = info
 url = https://{config.landscape_server}/message-system
 ping_url = http://{config.landscape_server}/ping
 data_path = /var/lib/landscape/client
-account_name = pjds
-registration_key = test
+account_name = {config.account_name}
+registration_key = {config.registration_key}
 tags = {','.join(config.tags)}
 computer_title = %s
 """
 
     for node in nodes:
         hostname = expression.search(ssh_and_get_output(node, "hostnamectl", not localhost)).group("hostname")
-        with NamedTemporaryFile() as tempfile:
+        with NamedTemporaryFile(delete=False) as tempfile:
             content = landscape_config_contents % hostname
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
             if localhost:
+                ssh(node, "landscape-config --silent --ok-no-register", not localhost)
                 ssh(node, f"sudo mv {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:
-                scp(node, tempfile.name, "~/client.conf")
-                ssh(node, "sudo mv client.conf /etc/landscape/client.conf", not localhost)
+                ssh(node, "landscape-config --silent --ok-no-register", not localhost)
+                scp(node, tempfile, "/tmp/client.conf")
+                ssh(node, "sudo mv /tmp/client.conf /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo systemctl enable landscape-client", not localhost)
-        ssh(node, "sudo service landscape-client restart", not localhost)
+        ssh(node, "sudo service landscape-client.service restart", not localhost)
 
 
 
