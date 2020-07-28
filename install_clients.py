@@ -82,7 +82,7 @@ def ssh(host, extra_commands, ssh=True):
         command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
         call_logging_output(command + [extra_commands])
     else:
-        call_logging_output(extra_commands.split(" "))
+     call_logging_output(extra_commands.split(" "))
 
 def scp(host, local_location, target_location):
     command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
@@ -96,6 +96,11 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
+<<<<<<< HEAD
+=======
+        ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
+        ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
+>>>>>>> 7d5b645347f1acc2a856b5ebfb37c3c5c07d80ca
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -122,7 +127,10 @@ computer_title = %s
             else:
                 ssh(node, "landscape-config --silent --ok-no-register", not localhost)
                 scp(node, tempfile, "/tmp/client.conf")
-                ssh(node, "sudo mv /tmp/client.conf /etc/landscape/client.conf", not localhost)
+                ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
+            else:
+                scp(node, tempfile.name, "~/client.conf")
+                ssh(node, "sudo mv client.conf /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo systemctl enable landscape-client", not localhost)
         ssh(node, "sudo service landscape-client.service restart", not localhost)
 
