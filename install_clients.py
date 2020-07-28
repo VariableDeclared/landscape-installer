@@ -97,7 +97,7 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
-        ssh(node, "sudo mkdir /etc/landscape", not localhost)
+        ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -106,8 +106,8 @@ log_level = info
 url = https://{config.landscape_server}/message-system
 ping_url = http://{config.landscape_server}/ping
 data_path = /var/lib/landscape/client
-account_name = pjds
-registration_key = test
+account_name = {config.account_name}
+registration_key = {config.registration_key}
 tags = {','.join(config.tags)}
 computer_title = %s
 """
