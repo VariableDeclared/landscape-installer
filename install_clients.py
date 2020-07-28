@@ -82,7 +82,8 @@ def ssh(host, extra_commands, ssh=True):
         command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
         call_logging_output(command + [extra_commands])
     else:
-        call_logging_output(extra_commands.split(" "))
+     # pdb.set_trace()
+     call_logging_output(extra_commands.split(" "))
 
 def scp(host, local_location, target_location):
     command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
@@ -117,11 +118,14 @@ computer_title = %s
             content = landscape_config_contents % hostname
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
+            # pdb.set_trace()
             if localhost:
-                ssh(node, f"sudo mv {tempfile.name} /etc/landscape/client.conf", not localhost)
+                # do not move,otherwise tempfile will fail to close.
+                ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:
                 scp(node, tempfile.name, "~/client.conf")
                 ssh(node, "sudo mv client.conf /etc/landscape/client.conf", not localhost)
+               
         ssh(node, "sudo systemctl enable landscape-client", not localhost)
         ssh(node, "sudo service landscape-client restart", not localhost)
 
