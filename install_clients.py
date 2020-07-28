@@ -82,7 +82,6 @@ def ssh(host, extra_commands, ssh=True):
         command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
         call_logging_output(command + [extra_commands])
     else:
-     # pdb.set_trace()
      call_logging_output(extra_commands.split(" "))
 
 def scp(host, local_location, target_location):
@@ -98,6 +97,7 @@ def install_landscape_client(nodes, localhost):
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
+        ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -118,7 +118,6 @@ computer_title = %s
             content = landscape_config_contents % hostname
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
-            # pdb.set_trace()
             if localhost:
                 # do not move,otherwise tempfile will fail to close.
                 ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
