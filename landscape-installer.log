@@ -38,3 +38,64 @@ DEBUG:root:b'Restarting landscape-client (via systemctl): landscape-client.servi
 DEBUG:root:b'Please wait...\n'
 DEBUG:root:b'System successfully registered.\n'
 DEBUG:root:Running action action_check_landscape_client
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'landscape-client is already the newest version (18.01-0ubuntu3.5).\n'
+DEBUG:root:b'0 to upgrade, 0 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:b'Restarting landscape-client (via systemctl): landscape-client.service.\n'
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'landscape-client is already the newest version (18.01-0ubuntu3.5).\n'
+DEBUG:root:b'0 to upgrade, 0 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:Running action action_check_landscape_client
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'The following NEW packages will be installed\n'
+DEBUG:root:b'  landscape-client\n'
+DEBUG:root:b'Preconfiguring packages ...\n'
+DEBUG:root:b'0 to upgrade, 1 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:b'Need to get 0 B/108 kB of archives.\n'
+DEBUG:root:b'After this operation, 585 kB of additional disk space will be used.\n'
+DEBUG:root:b'Selecting previously unselected package landscape-client.\r\n'
+DEBUG:root:b'(Reading database ... \r(Reading database ... 5%\r(Reading database ... 10%\r(Reading database ... 15%\r(Reading database ... 20%\r(Reading database ... 25%\r(Reading database ... 30%\r(Reading database ... 35%\r(Reading database ... 40%\r(Reading database ... 45%\r(Reading database ... 50%\r(Reading database ... 55%\r(Reading database ... 60%\r(Reading database ... 65%\r(Reading database ... 70%\r(Reading database ... 75%\r(Reading database ... 80%\r(Reading database ... 85%\r(Reading database ... 90%\r(Reading database ... 95%\r(Reading database ... 100%\r(Reading database ... 176685 files and directories currently installed.)\r\n'
+DEBUG:root:b'Preparing to unpack .../landscape-client_18.01-0ubuntu3.5_amd64.deb ...\r\n'
+DEBUG:root:b'Unpacking landscape-client (18.01-0ubuntu3.5) ...\r\n'
+DEBUG:root:b'Setting up landscape-client (18.01-0ubuntu3.5) ...\r\n'
+DEBUG:root:b'update-rc.d: warning: start and stop actions are no longer supported; falling back to defaults\r\n'
+DEBUG:root:b'Processing triggers for man-db (2.8.3-2ubuntu0.1) ...\r\n'
+DEBUG:root:b'Processing triggers for ureadahead (0.100.0-21) ...\r\n'
+DEBUG:root:b'Processing triggers for systemd (237-3ubuntu10.38) ...\r\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:Running action action_check_landscape_client
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'landscape-client is already the newest version (18.01-0ubuntu3.5).\n'
+DEBUG:root:b'0 to upgrade, 0 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:Running action action_check_landscape_client
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'landscape-client is already the newest version (18.01-0ubuntu3.5).\n'
+DEBUG:root:b'0 to upgrade, 0 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:Running action action_check_landscape_client
+DEBUG:root:Running action action_install_landscape_client
+DEBUG:root:b'Reading package lists...\n'
+DEBUG:root:b'Building dependency tree...\n'
+DEBUG:root:b'Reading state information...\n'
+DEBUG:root:b'landscape-client is already the newest version (18.01-0ubuntu3.5).\n'
+DEBUG:root:b'0 to upgrade, 0 to newly install, 0 to remove and 101 not to upgrade.\n'
+DEBUG:root:Running action action_register_landscape_client
+DEBUG:root:Running action action_check_landscape_client

@@ -124,8 +124,8 @@ computer_title = %s
                 ssh(node, "landscape-config --silent --ok-no-register", not localhost)
                 scp(node, tempfile, "/tmp/client.conf")
                 ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
-        ssh(node, "sudo systemctl enable landscape-client.service", not localhost)
-        ssh(node, "sudo service landscape-client.service restart", not localhost)
+        ssh(node, "sudo systemctl enable landscape-client", not localhost)
+        ssh(node, "sudo service landscape-client restart", not localhost)
 
 
 
