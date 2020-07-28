@@ -8,7 +8,7 @@ import sys
 import re 
 import ipaddress
 import socket
-
+from tempfile import NamedTemporaryFile
 # TODO:
 # HANDLE ALL ERRORS
 # Cleanup function - TEST
@@ -84,25 +84,47 @@ def ssh(host, extra_commands, ssh=True):
     else:
         call_logging_output(extra_commands.split(" "))
 
+def scp(host, local_location, target_location):
+    command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
+    call(command)
+
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
 def install_landscape_client(nodes, localhost):
     for node in nodes:
         print(f"Installing landscape client to: {node}")
-        ssh(node, "sudo mkdir /etc/landscape", not localhost)
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
-
+        # ensure landscape directories
+        ssh(node, "sudo mkdir /etc/landscape", not localhost)
+        ssh(node, "sudo mkdir /etc/landscape", not localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
+    landscape_config_contents = f"""[client]
+log_level = info
+url = https://{config.landscape_server}/message-system
+ping_url = http://{config.landscape_server}/ping
+data_path = /var/lib/landscape/client
+account_name = pjds
+registration_key = test
+tags = {','.join(config.tags)}
+computer_title = %s
+"""
+
     for node in nodes:
         hostname = expression.search(ssh_and_get_output(node, "hostnamectl", not localhost)).group("hostname")
-        ssh(node, f"sudo landscape-config --silent --account-name {config.account_name} \
-                --url https://{config.landscape_server}/message-system \
-                --ping-url http://{config.landscape_server}/ping \
-                -p {config.registration_key} \
-                --tags {','.join(config.tags)} \
-                -t {hostname}", not localhost)
+        with NamedTemporaryFile() as tempfile:
+            content = landscape_config_contents % hostname
+            tempfile.write(bytes(content, 'utf-8'))
+            tempfile.flush()
+            if localhost:
+                ssh(node, f"sudo mv {tempfile.name} /etc/landscape/client.conf", not localhost)
+            else:
+                scp(node, tempfile.name, "~/client.conf")
+                ssh(node, "sudo mv client.conf /etc/landscape/client.conf", not localhost)
+        ssh(node, "sudo systemctl enable landscape-client", not localhost)
+        ssh(node, "sudo service landscape-client restart", not localhost)
+
 
 
 def ssh_and_get_output(host, extra_commands, ssh=True):
