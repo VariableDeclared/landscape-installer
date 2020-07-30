@@ -26,7 +26,7 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~32d0bdc")
+    print("Landscape installer, v1.0~9b2e8ba")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
@@ -118,6 +118,11 @@ def update_permissions(node, folders, localhost):
         ssh(node, f"sudo chown landscape:landscape {folder}", not localhost)
         ssh(node, f"sudo chmod ug+wrx {folder}", not localhost)
 
+def setup_sudoers(node, ssh=False):
+    ps = subprocess.Popen(['sudo', 'echo', 'landscape ALL=(ALL) NOPASSWD:ALL'], stdout=subprocess.PIPE)
+    output = subprocess.check_output(['tee', '/etc/sudoers.d/landscape'], stdin=ps.stdout)
+    ps.wait()
+
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
 def install_landscape_client(nodes, localhost):
@@ -128,7 +133,8 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
         ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
-        ssh(node, "sudo echo 'landscape  ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/landscape", not localhost)
+        pdb.set_trace()
+        setup_sudoers(node, not localhost)
         update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
 def register_landscape_client(nodes, config, localhost):
