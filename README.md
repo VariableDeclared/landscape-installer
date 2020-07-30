@@ -17,19 +17,19 @@ The format of the json file is as follows:
 Start with
 
 ```
-./install_clients.py --help
+sudo ./install_clients.py --help
 ```
 
 To run install the clients do on a set of nodes, run the following:
 
 ```
-./install_clients.py IP1,IP2,FQN1,FQDN2
+sudo ./install_clients.py IP1,IP2,FQN1,FQDN2
 
 ```
 
 Or to install on the machine that the script is running on use the `--localhost` argument.
 
 ```
-./install_clients.py --localhost
+sudo ./install_clients.py --localhost
 ```
 

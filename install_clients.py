@@ -8,6 +8,7 @@ import sys
 import re 
 import ipaddress
 import socket
+import os
 from tempfile import NamedTemporaryFile
 # TODO:
 # HANDLE ALL ERRORS
@@ -75,11 +76,11 @@ def call_logging_output(command_pieces):
     for line in iter(lambda: process.stdout.readline(), b''):
         sys.stdout.write(line.decode('utf-8'))
         logger.debug(line)
-    process.terminate()
+    # process.terminate()
 
 def call_without_logging(command_pieces):
     process = subprocess.Popen(command_pieces)
-    process.terminate()
+    # process.terminate()
 
 def ssh(host, extra_commands, ssh=True, return_output=True):
     if ssh:
@@ -99,6 +100,11 @@ def scp(host, local_location, target_location):
     command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
     call(command)
 
+def update_permissions(node, folders, localhost):
+    for folder in folders:
+        ssh(node, f"sudo chown landscape:landscape {folder}", not localhost)
+        ssh(node, f"sudo chmod ug+wrx {folder}", not localhost)
+
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
 def install_landscape_client(nodes, localhost):
@@ -108,6 +114,7 @@ def install_landscape_client(nodes, localhost):
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
+        update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -130,11 +137,13 @@ computer_title = %s
             tempfile.flush()
             if localhost:
                 ssh(node, "landscape-config --silent --ok-no-register", not localhost, False)
-                ssh(node, f"sudo mv {tempfile.name} /etc/landscape/client.conf", not localhost)
+                ssh(node, f"mv {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:
-                ssh(node, "landscape-config --silent --ok-no-register", not localhost, False)
+                ssh(node, "sudo landscape-config --silent --ok-no-register", not localhost, False)
                 scp(node, tempfile, "/tmp/client.conf")
                 ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
+        ssh(node, "sudo chown root:landscape /etc/landscape/client.conf", not localhost)
+        ssh(node, "sudo chmod ug+wrx /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo systemctl enable landscape-client.service", not localhost)
         ssh(node, "sudo service landscape-client restart", not localhost)
 
@@ -254,4 +263,7 @@ There are also some non-default steps:
             NON_DEFAULT_ACTIONS[action_name](*ACTIONS_TO_ARGS_MAP.get(action_name,()))
 
 if __name__ == '__main__':
+    if os.getgid() != 0:
+        print(f"Script must be run as root. please run sudo {__file__}")
+        exit(1)
     main()
