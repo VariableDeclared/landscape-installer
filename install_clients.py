@@ -23,10 +23,10 @@ CLEINT_LIST = []
 DIRECTORY_PREFIX = "."
 CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 
-SSH_KEY_LOCATION = "~/.ssh/id_rsa"
+SSH_KEY_LOCATION = "/home/pjds/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~9b2e8ba")
+    print("Landscape installer, v1.0~260fc1d")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
@@ -118,10 +118,17 @@ def update_permissions(node, folders, localhost):
         ssh(node, f"sudo chown landscape:landscape {folder}", not localhost)
         ssh(node, f"sudo chmod ug+wrx {folder}", not localhost)
 
-def setup_sudoers(node, ssh=False):
-    ps = subprocess.Popen(['sudo', 'echo', 'landscape ALL=(ALL) NOPASSWD:ALL'], stdout=subprocess.PIPE)
-    output = subprocess.check_output(['tee', '/etc/sudoers.d/landscape'], stdin=ps.stdout)
-    ps.wait()
+def setup_sudoers(node, remote_install):
+    if remote_install:
+        with NamedTemporaryFile() as sudoers_file:
+            sudoers_file.write(bytes('landscape ALL=(ALL) NOPASSWD:ALL', 'utf-8'))
+            sudoers_file.flush()
+            scp(node, sudoers_file.name, "/tmp/sudoers_file")
+        ssh(node, "sudo install -C -m 440 -o root -g root /tmp/sudoers_file /etc/sudoers.d/landscape", remote_install) 
+    else:
+        ps = subprocess.Popen(['echo', 'landscape ALL=(ALL) NOPASSWD:ALL'], stdout=subprocess.PIPE)
+        output = subprocess.check_output(['tee', '/etc/sudoers.d/landscape'], stdin=ps.stdout)
+        ps.wait()
 
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
@@ -133,7 +140,6 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
         ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
-        pdb.set_trace()
         setup_sudoers(node, not localhost)
         update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
@@ -159,10 +165,10 @@ include_manager_plugins = ScriptExecution
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
             if localhost:
-                ssh(node, f"mv {tempfile.name} /etc/landscape/client.conf", not localhost)
+                ssh(node, f"cp {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:         
-                scp(node, tempfile, "/tmp/client.conf")
-                ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
+                scp(node, tempfile.name, "/tmp/client.conf")
+                ssh(node, f"sudo cp /tmp/client.conf /etc/landscape/client.conf", not localhost)
         # ssh(node, "sudo landscape-config --silent --ok-no-register", not localhost, False)
         ssh(node, "sudo chown root:landscape /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo chmod ug+wrx /etc/landscape/client.conf", not localhost)
