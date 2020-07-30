@@ -26,7 +26,7 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~9ab4a8b")
+    print("Landscape installer, v1.0~cb7ad46")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
