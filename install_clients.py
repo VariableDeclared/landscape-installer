@@ -68,21 +68,32 @@ Elements take the form:
 def cleanup(nodes, localhost):
     for node in nodes:
         ssh(node, "sudo apt-get remove landscape-client -y", not localhost)
-        ssh(node, "sudo rm /etc/landscape/client.conf", not localhost)
+        ssh(node, "sudo rm -rf /etc/landscape/", not localhost)
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
     for line in iter(lambda: process.stdout.readline(), b''):
         sys.stdout.write(line.decode('utf-8'))
         logger.debug(line)
+    process.terminate()
 
+def call_without_logging(command_pieces):
+    process = subprocess.Popen(command_pieces)
+    process.terminate()
 
-def ssh(host, extra_commands, ssh=True):
+def ssh(host, extra_commands, ssh=True, return_output=True):
     if ssh:
         command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
-        call_logging_output(command + [extra_commands])
+        if return_output:
+          call_logging_output(command + [extra_commands])
+        else:
+          call_without_logging(command + [extra_commands])
     else:
-     call_logging_output(extra_commands.split(" "))
+        if return_output:
+          call_logging_output(extra_commands.split(" "))
+        else:
+          call_without_logging(extra_commands.split(" "))
+
 
 def scp(host, local_location, target_location):
     command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
@@ -93,9 +104,9 @@ def scp(host, local_location, target_location):
 def install_landscape_client(nodes, localhost):
     for node in nodes:
         print(f"Installing landscape client to: {node}")
-        ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         # ensure landscape directories
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
+        ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
 
 def register_landscape_client(nodes, config, localhost):
@@ -118,13 +129,13 @@ computer_title = %s
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
             if localhost:
-                ssh(node, "landscape-config --silent --ok-no-register", not localhost)
+                ssh(node, "landscape-config --silent --ok-no-register", not localhost, False)
                 ssh(node, f"sudo mv {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:
-                ssh(node, "landscape-config --silent --ok-no-register", not localhost)
+                ssh(node, "landscape-config --silent --ok-no-register", not localhost, False)
                 scp(node, tempfile, "/tmp/client.conf")
                 ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
-        ssh(node, "sudo systemctl enable landscape-client", not localhost)
+        ssh(node, "sudo systemctl enable landscape-client.service", not localhost)
         ssh(node, "sudo service landscape-client restart", not localhost)
 
 
@@ -178,7 +189,6 @@ Choose from:
 )
 parser.add_argument('clients', default="", nargs="?", type=str, help="Comma separated clients to install the landscape client to. FQDN or IP accepted.")
 parser.add_argument('--localhost', default=False, action=ToggleAction, nargs=0, type=bool, help="Dont accept client arguements, just install to localhost.")
-
 args = parser.parse_args()
 
 if not args.localhost and args.clients == "":
