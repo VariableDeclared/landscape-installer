@@ -114,6 +114,7 @@ def install_landscape_client(nodes, localhost):
         ssh(node, "sudo mkdir /etc/landscape", not localhost)
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
+        ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
         update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
 def register_landscape_client(nodes, config, localhost):
@@ -136,12 +137,11 @@ computer_title = %s
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
             if localhost:
-                ssh(node, "landscape-config --silent --ok-no-register", not localhost, False)
                 ssh(node, f"mv {tempfile.name} /etc/landscape/client.conf", not localhost)
-            else:
-                ssh(node, "sudo landscape-config --silent --ok-no-register", not localhost, False)
+            else:         
                 scp(node, tempfile, "/tmp/client.conf")
                 ssh(node, f"sudo cp {tempfile.name} /etc/landscape/client.conf", not localhost)
+        # ssh(node, "sudo landscape-config --silent --ok-no-register", not localhost, False)
         ssh(node, "sudo chown root:landscape /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo chmod ug+wrx /etc/landscape/client.conf", not localhost)
         ssh(node, "sudo systemctl enable landscape-client.service", not localhost)
