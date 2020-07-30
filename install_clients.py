@@ -24,6 +24,10 @@ DIRECTORY_PREFIX = "."
 CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 
 SSH_KEY_LOCATION = "~/.ssh/id_rsa"
+
+def print_version():
+    print(f"Landscape installer, v1.0~9ab4a8b")
+
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
@@ -38,6 +42,10 @@ class LandscapeConfigDecoder(json.JSONDecoder):
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
 
+class VersionAction(argparse.Action):
+    def __call__(self, parser, ns, values, option):
+        print_version()
+        exit(0)
 
 class ToggleAction(argparse.Action):
     def __call__(self, parser, ns, values, option):
@@ -68,8 +76,9 @@ Elements take the form:
 
 def cleanup(nodes, localhost):
     for node in nodes:
-        ssh(node, "sudo apt-get remove landscape-client -y", not localhost)
+        ssh(node, "sudo apt-get purge landscape-client -y", not localhost)
         ssh(node, "sudo rm -rf /etc/landscape/", not localhost)
+        ssh(node, "sudo rm -rf /var/lib/landscape", not localhost)
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
@@ -128,6 +137,8 @@ account_name = {config.account_name}
 registration_key = {config.registration_key}
 tags = {','.join(config.tags)}
 computer_title = %s
+script_users = landscape
+include_manager_plugins = ScriptExecution
 """
 
     for node in nodes:
@@ -198,6 +209,7 @@ Choose from:
 )
 parser.add_argument('clients', default="", nargs="?", type=str, help="Comma separated clients to install the landscape client to. FQDN or IP accepted.")
 parser.add_argument('--localhost', default=False, action=ToggleAction, nargs=0, type=bool, help="Dont accept client arguements, just install to localhost.")
+parser.add_argument('--version', action=VersionAction, nargs=0, type=bool, help="Print the version of this application")
 args = parser.parse_args()
 
 if not args.localhost and args.clients == "":
@@ -239,6 +251,7 @@ ACTIONS_TO_ARGS_MAP = {
     'action_check_landscape_client': [validate_client_args(args.clients), args.localhost],
     'action_cleanup': [validate_client_args(args.clients), args.localhost]
 }
+
 
 
 def main():
