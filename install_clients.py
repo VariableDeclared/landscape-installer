@@ -23,10 +23,10 @@ CLEINT_LIST = []
 DIRECTORY_PREFIX = "."
 CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 
-SSH_KEY_LOCATION = "/home/pjds/.ssh/id_rsa"
+SSH_KEY_LOCATION = f"/home/{os.getenv('SUDO_USER')}/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~260fc1d")
+    print("Landscape installer, v1.0~e4b9e37")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
