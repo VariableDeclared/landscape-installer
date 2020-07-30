@@ -26,18 +26,18 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 
 def print_version():
-    print(f"Landscape installer, v1.0~9ab4a8b")
+    print("Landscape installer, v1.0~9ab4a8b")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags }
+            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_groups': o.access_groups }
 
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         try:
-            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'])
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config["access_groups"])
         except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
@@ -56,21 +56,24 @@ class LandscapeConfig(object):
         if type(arg) is not str:
             raise ValueError(f"Keys should be of value string. Check the landscape config file")
         return arg
-    def __init__(self, *args):
-        self.account_name = self.validate_str_args(args[0])
-        self.landscape_server = self.validate_str_args(args[1])
-        self.registration_key = self.validate_str_args(args[2])
+    def check_for_list(self, obj, name):
         if type(args[3]) is not list:
-            raise ValueError(""" Tags is a list. 
-Ensure tags element has the form:
-"tags": ["tag1", "tag2"]
+            raise ValueError(f"""{name} is a list. 
+Ensure {name} element has the form:
+"{name}": ["tag1", "tag2"]
 """)
         if(type(args[3][0]) is not str):
             raise ValueError("""Tags should take string form
 Elements take the form:
-"tags": ["str1", "str2"]
+"{name}": ["str1", "str2"]
 """)
-        self.tags = args[3]
+
+    def __init__(self, *args):
+        self.account_name = self.validate_str_args(args[0])
+        self.landscape_server = self.validate_str_args(args[1])
+        self.registration_key = self.validate_str_args(args[2])
+        self.tags = self.check_for_list(args[3], "tags")
+        self.access_groups = self.validate_str_args(args[4])
 
 
 

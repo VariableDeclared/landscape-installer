@@ -11,7 +11,8 @@ The format of the json file is as follows:
     "account_name": "pjds",
     "landscape_server": "172.27.60.189",
     "registration_key": "test",
-    "tags": ["dev", "20.04"]
+    "tags": ["dev", "20.04"],
+    "access_groups": "org"
 }
 ```
 Start with
