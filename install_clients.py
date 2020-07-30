@@ -26,7 +26,7 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = "~/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~cb7ad46")
+    print("Landscape installer, v1.0~32d0bdc")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
@@ -37,7 +37,7 @@ class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         try:
-            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config["access_groups"])
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_groups"])
         except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
@@ -57,16 +57,17 @@ class LandscapeConfig(object):
             raise ValueError(f"Keys should be of value string. Check the landscape config file")
         return arg
     def check_for_list(self, obj, name):
-        if type(args[3]) is not list:
+        if type(obj) is not list:
             raise ValueError(f"""{name} is a list. 
 Ensure {name} element has the form:
 "{name}": ["tag1", "tag2"]
 """)
-        if(type(args[3][0]) is not str):
+        if(type(obj[0]) is not str):
             raise ValueError("""Tags should take string form
 Elements take the form:
 "{name}": ["str1", "str2"]
 """)
+        return obj
 
     def __init__(self, *args):
         self.account_name = self.validate_str_args(args[0])
@@ -127,6 +128,7 @@ def install_landscape_client(nodes, localhost):
         ssh(node,"sudo apt-get install -y landscape-client", not localhost)
         ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
         ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
+        ssh(node, "sudo echo 'landscape  ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/landscape", not localhost)
         update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
 def register_landscape_client(nodes, config, localhost):
