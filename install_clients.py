@@ -26,18 +26,18 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = f"/home/{os.getenv('SUDO_USER')}/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~e4b9e37")
+    print("Landscape installer, v1.0~f9ecb45")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_groups': o.access_groups }
+            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_group': o.access_group }
 
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         try:
-            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_groups"])
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_group"])
         except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
@@ -74,7 +74,7 @@ Elements take the form:
         self.landscape_server = self.validate_str_args(args[1])
         self.registration_key = self.validate_str_args(args[2])
         self.tags = self.check_for_list(args[3], "tags")
-        self.access_groups = self.validate_str_args(args[4])
+        self.access_group = self.validate_str_args(args[4])
 
 
 
@@ -152,6 +152,7 @@ ping_url = http://{config.landscape_server}/ping
 data_path = /var/lib/landscape/client
 account_name = {config.account_name}
 registration_key = {config.registration_key}
+access_group = {config.access_group}
 tags = {','.join(config.tags)}
 computer_title = %s
 script_users = landscape
