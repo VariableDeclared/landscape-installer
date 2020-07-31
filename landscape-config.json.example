@@ -1,1 +1,1 @@
-{"account_name": "accountname", "landscape_server": "landscape.canonical.com", "registration_key": "key", "tags": ["prod","desktop"], "access_group": "demo" }
+{"account_name": "accountname", "landscape_server": "landscape.canonical.com", "registration_key": "key", "tags": ["prod","desktop"], "access_group": "demo", "remote_user": "ubuntu" }

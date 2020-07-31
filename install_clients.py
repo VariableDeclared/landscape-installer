@@ -26,18 +26,18 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = f"/home/{os.getenv('SUDO_USER')}/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~028cd50")
+    print("Landscape installer, v1.0~2cf5a8d")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_group': o.access_group }
+            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_group': o.access_group, 'remote_user': o.remote_user }
 
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         try:
-            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_group"])
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_group"], config_dict["remote_user"])
         except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
@@ -75,14 +75,15 @@ Elements take the form:
         self.registration_key = self.validate_str_args(args[2])
         self.tags = self.check_for_list(args[3], "tags")
         self.access_group = self.validate_str_args(args[4])
+        self.remote_user = self.validate_str_args(args[5])
 
 
 
-def cleanup(nodes, localhost):
+def cleanup(nodes, user, localhost):
     for node in nodes:
-        ssh(node, "sudo apt-get purge landscape-client -y", not localhost)
-        ssh(node, "sudo rm -rf /etc/landscape/", not localhost)
-        ssh(node, "sudo rm -rf /var/lib/landscape", not localhost)
+        ssh(node, user, "sudo apt-get purge landscape-client -y", not localhost)
+        ssh(node, user, "sudo rm -rf /etc/landscape/", not localhost)
+        ssh(node, user, "sudo rm -rf /var/lib/landscape", not localhost)
 
 def call_logging_output(command_pieces):
     process = subprocess.Popen(command_pieces, stdout=subprocess.PIPE)
@@ -95,9 +96,9 @@ def call_without_logging(command_pieces):
     process = subprocess.Popen(command_pieces)
     # process.terminate()
 
-def ssh(host, extra_commands, ssh=True, return_output=True):
+def ssh(host, user, extra_commands, ssh=True, return_output=True):
     if ssh:
-        command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
+        command = f"ssh -i {SSH_KEY_LOCATION} {user}@{host} -o StrictHostKeyChecking=no -- ".split(" ")
         if return_output:
           call_logging_output(command + [extra_commands])
         else:
@@ -109,22 +110,22 @@ def ssh(host, extra_commands, ssh=True, return_output=True):
           call_without_logging(extra_commands.split(" "))
 
 
-def scp(host, local_location, target_location):
-    command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} ubuntu@{host}:{target_location}".split(" ")
+def scp(host, user, local_location, target_location):
+    command = f"scp -i {SSH_KEY_LOCATION} -o StrictHostKeyChecking=no {local_location} {user}@{host}:{target_location}".split(" ")
     call(command)
 
-def update_permissions(node, folders, localhost):
+def update_permissions(node, user, folders, localhost):
     for folder in folders:
-        ssh(node, f"sudo chown landscape:landscape {folder}", not localhost)
-        ssh(node, f"sudo chmod ug+wrx {folder}", not localhost)
+        ssh(node, user, f"sudo chown landscape:landscape {folder}", not localhost)
+        ssh(node, user, f"sudo chmod ug+wrx {folder}", not localhost)
 
-def setup_sudoers(node, remote_install):
+def setup_sudoers(node, user, remote_install):
     if remote_install:
         with NamedTemporaryFile() as sudoers_file:
             sudoers_file.write(bytes('landscape ALL=(ALL) NOPASSWD:ALL', 'utf-8'))
             sudoers_file.flush()
-            scp(node, sudoers_file.name, "/tmp/sudoers_file")
-        ssh(node, "sudo install -C -m 440 -o root -g root /tmp/sudoers_file /etc/sudoers.d/landscape", remote_install) 
+            scp(node, user, sudoers_file.name, "/tmp/sudoers_file")
+        ssh(node, user, "sudo install -C -m 440 -o root -g root /tmp/sudoers_file /etc/sudoers.d/landscape", remote_install) 
     else:
         ps = subprocess.Popen(['echo', 'landscape ALL=(ALL) NOPASSWD:ALL'], stdout=subprocess.PIPE)
         output = subprocess.check_output(['tee', '/etc/sudoers.d/landscape'], stdin=ps.stdout)
@@ -132,16 +133,16 @@ def setup_sudoers(node, remote_install):
 
 # TODO: We're assuming that the user has PASSWORDLESS sudo AND
 # we're also assuming that the user has passwordless SSH.
-def install_landscape_client(nodes, localhost):
+def install_landscape_client(nodes, user, localhost):
     for node in nodes:
         print(f"Installing landscape client to: {node}")
         # ensure landscape directories
-        ssh(node, "sudo mkdir /etc/landscape", not localhost)
-        ssh(node,"sudo apt-get install -y landscape-client", not localhost)
-        ssh(node, "sudo mkdir /var/lib/landscape", not localhost)
-        ssh(node, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
-        setup_sudoers(node, not localhost)
-        update_permissions(node, ['/etc/landscape', '/var/lib/landscape'], localhost)
+        ssh(node, user, "sudo mkdir /etc/landscape", not localhost)
+        ssh(node, user, "sudo apt-get install -y landscape-client", not localhost)
+        ssh(node, user, "sudo mkdir /var/lib/landscape", not localhost)
+        ssh(node, user, "sudo sed -iE s/RUN=0/RUN=1/g /etc/init.d/landscape-client", not localhost)
+        setup_sudoers(node, user, not localhost)
+        update_permissions(node, user, ['/etc/landscape', '/var/lib/landscape'], localhost)
 
 def register_landscape_client(nodes, config, localhost):
     expression = re.compile(r' *Static hostname: {1}(?P<hostname>[a-zA-Z0-9-]*)', re.MULTILINE)
@@ -160,7 +161,7 @@ include_manager_plugins = ScriptExecution
 """
 
     for node in nodes:
-        hostname = expression.search(ssh_and_get_output(node, "hostnamectl", not localhost)).group("hostname")
+        hostname = expression.search(ssh_and_get_output(node, config.remote_user, "hostnamectl", not localhost)).group("hostname")
         with NamedTemporaryFile(delete=False) as tempfile:
             content = landscape_config_contents % hostname
             tempfile.write(bytes(content, 'utf-8'))
@@ -168,20 +169,20 @@ include_manager_plugins = ScriptExecution
             if localhost:
                 ssh(node, f"cp {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:         
-                scp(node, tempfile.name, "/tmp/client.conf")
-                ssh(node, f"sudo cp /tmp/client.conf /etc/landscape/client.conf", not localhost)
+                scp(node, config.remote_user, tempfile.name, "/tmp/client.conf")
+                ssh(node, config.remote_user, f"sudo cp /tmp/client.conf /etc/landscape/client.conf", not localhost)
         # ssh(node, "sudo landscape-config --silent --ok-no-register", not localhost, False)
-        ssh(node, "sudo chown root:landscape /etc/landscape/client.conf", not localhost)
-        ssh(node, "sudo chmod ug+wrx /etc/landscape/client.conf", not localhost)
-        ssh(node, "sudo systemctl enable landscape-client.service", not localhost)
-        ssh(node, "sudo service landscape-client restart", not localhost)
+        ssh(node, config.remote_user, "sudo chown root:landscape /etc/landscape/client.conf", not localhost)
+        ssh(node, config.remote_user, "sudo chmod ug+wrx /etc/landscape/client.conf", not localhost)
+        ssh(node, config.remote_user, "sudo systemctl enable landscape-client.service", not localhost)
+        ssh(node, config.remote_user, "sudo service landscape-client restart", not localhost)
 
 
 
-def ssh_and_get_output(host, extra_commands, ssh=True):
+def ssh_and_get_output(host, user, extra_commands, ssh=True):
     command = []
     if ssh:
-        command = f"ssh -i {SSH_KEY_LOCATION} ubuntu@{host} -o StrictHostKeyChecking=no -- ".split(" ")
+        command = f"ssh -i {SSH_KEY_LOCATION} {user}@{host} -o StrictHostKeyChecking=no -- ".split(" ")
         return call(command + [extra_commands])
     else:
         return call(extra_commands.split(" "))
@@ -189,12 +190,11 @@ def ssh_and_get_output(host, extra_commands, ssh=True):
 def call(command):
     return subprocess.check_output(command).decode('utf-8')
 
-def check_landscape_client(nodes, localhost):
+def check_landscape_client(nodes, user, localhost):
     node_status = {}
     expression = re.compile(r'Active: {1}(?P<status>[a-zA-Z \(\)]*) since', re.MULTILINE)
     for node in nodes:
-        
-        ssh_output = ssh_and_get_output(node, f"systemctl status landscape-client", not localhost)
+        ssh_output = ssh_and_get_output(node, user, f"systemctl status landscape-client", not localhost)
         status = expression.search(ssh_output).group("status")
         node_status.update({
             node: status
@@ -264,9 +264,9 @@ def validate_client_args(client_args):
 
 
 ACTIONS_TO_ARGS_MAP = {
-    'action_install_landscape_client': [validate_client_args(args.clients), args.localhost],
+    'action_install_landscape_client': [validate_client_args(args.clients), landscape_config.remote_user, args.localhost],
     'action_register_landscape_client': [validate_client_args(args.clients), landscape_config, args.localhost],
-    'action_check_landscape_client': [validate_client_args(args.clients), args.localhost],
+    'action_check_landscape_client': [validate_client_args(args.clients), landscape_config.remote_user, args.localhost],
     'action_cleanup': [validate_client_args(args.clients), args.localhost]
 }
 

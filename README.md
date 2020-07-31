@@ -1,7 +1,7 @@
 # landscape-installer
 A script to handle all your landscape needs
 
-## Setting up passwordless sudo
+## Setting up passwordless sudo [Required for remote install]
 
 In order to run the script remotely, you will need to configure passwordless sudo on target machines.
 
@@ -15,12 +15,12 @@ ${USER} ALL=(ALL) NOPASSWD:ALL
 
 END
 
-Then to install the file, run: 
+Then to install the file, run:
 
 $ sudo install -C -m 440 -o root -g root USER.sudoers /etc/sudoers.d/${USERNAME}
 ```
 
-In order to keep sudoers organised the new file should then appear in `/etc/sudoers.d/REPLACEME`.
+In order to keep sudoers organised the new file should then appear in `/etc/sudoers.d/${USERNAME}`.
 
 ## How to use
 
@@ -54,4 +54,3 @@ Or to install on the machine that the script is running on use the `--localhost`
 ```
 sudo ./install_clients.py --localhost
 ```
-
