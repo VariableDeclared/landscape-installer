@@ -26,7 +26,7 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = f"/home/{os.getenv('SUDO_USER')}/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~2cf5a8d")
+    print("Landscape installer, v1.0~4b48cba")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
@@ -167,7 +167,7 @@ include_manager_plugins = ScriptExecution
             tempfile.write(bytes(content, 'utf-8'))
             tempfile.flush()
             if localhost:
-                ssh(node, f"cp {tempfile.name} /etc/landscape/client.conf", not localhost)
+                ssh(node, config.remote_user, f"cp {tempfile.name} /etc/landscape/client.conf", not localhost)
             else:         
                 scp(node, config.remote_user, tempfile.name, "/tmp/client.conf")
                 ssh(node, config.remote_user, f"sudo cp /tmp/client.conf /etc/landscape/client.conf", not localhost)
@@ -273,6 +273,7 @@ ACTIONS_TO_ARGS_MAP = {
 
 
 def main():
+    print_version()
     if args.steps is None:
         print(f"""No steps specified.
 Valid steps are:
