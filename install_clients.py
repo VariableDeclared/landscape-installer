@@ -156,7 +156,7 @@ registration_key = {config.registration_key}
 access_group = {config.access_group}
 tags = {','.join(config.tags)}
 computer_title = %s
-script_users = landscape
+script_users = {','.join(config.script_users)}
 include_manager_plugins = ScriptExecution
 """
 
