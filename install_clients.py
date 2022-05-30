@@ -26,7 +26,7 @@ CONFIG_DIRECTORY = f"{DIRECTORY_PREFIX}/landscape-config.json"
 SSH_KEY_LOCATION = f"/home/{os.getenv('SUDO_USER')}/.ssh/id_rsa"
 
 def print_version():
-    print("Landscape installer, v1.0~4b48cba")
+    print("Landscape installer, v1.0~42b6f2a")
 
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
@@ -156,7 +156,7 @@ registration_key = {config.registration_key}
 access_group = {config.access_group}
 tags = {','.join(config.tags)}
 computer_title = %s
-script_users = landscape
+script_users = {','.join(config.script_users)}
 include_manager_plugins = ScriptExecution
 """
 
