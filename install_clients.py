@@ -31,13 +31,13 @@ def print_version():
 class LandscapeConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, LandscapeConfig):
-            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_group': o.access_group, 'remote_user': o.remote_user }
+            return { 'account_name': o.account_name, 'landscape_server': o.landscape_server, 'registration_key': o.registration_key, 'tags': o.tags, 'access_group': o.access_group, 'remote_user': o.remote_user, 'script_users': o.script_users }
 
 class LandscapeConfigDecoder(json.JSONDecoder):
     def decode(self, string):
         config_dict = json.loads(string)
         try:
-            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_group"], config_dict["remote_user"])
+            return LandscapeConfig(config_dict['account_name'], config_dict['landscape_server'], config_dict['registration_key'], config_dict['tags'], config_dict["access_group"], config_dict["remote_user"], config_dict["script_users"])
         except Exception as ex:
             print(f"Key is missing from config or invalid: {ex} This key is required. Exiting.")
             exit(1)
@@ -76,6 +76,7 @@ Elements take the form:
         self.tags = self.check_for_list(args[3], "tags")
         self.access_group = self.validate_str_args(args[4])
         self.remote_user = self.validate_str_args(args[5])
+        self.script_users = self.check_for_list(args[6], "script_users")
 
 
 
